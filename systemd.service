@@ -1,0 +1,16 @@
+[Unit]
+Description=DynIptables
+After=network.target
+
+[Service]
+Type=forking
+
+User=root
+Group=root
+
+ExecStart=/opt/dyniptables/shell/start.sh
+ExecStop=/opt/dyniptables/shell/stop.sh
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
