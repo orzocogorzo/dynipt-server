@@ -39,12 +39,16 @@ def fetch_ip():
         abort(500)
 
 
-def drop_line(lineno: str, chain: str = "PREROUTING") -> tuple[bytes, bytes]:
-    p = Popen(["iptables", "-t", "nat", "-D", chain, lineno], stdout=PIPE, stderr=PIPE)
+def drop_line(
+    lineno: str, table: str, chain: str = "PREROUTING"
+) -> tuple[bytes, bytes]:
+    p = Popen(["iptables", "-t", table, "-D", chain, lineno], stdout=PIPE, stderr=PIPE)
     return p.communicate()
 
 
-def append_filter_rule(proto: str, host_ip: str, port: str) -> tuple[bytes, bytes]:
+def append_filter_rule(
+    proto: str, host_ip: str, dest_ip: str, port: str
+) -> tuple[bytes, bytes]:
     p = Popen(
         [
             "iptables",
@@ -56,6 +60,8 @@ def append_filter_rule(proto: str, host_ip: str, port: str) -> tuple[bytes, byte
             proto,
             "-s",
             host_ip,
+            "-d",
+            dest_ip,
             "--dport",
             port,
             "-j",
@@ -126,7 +132,7 @@ def prune_postrouting(rule: str, proto: str, dest_ip: str) -> bool:
             proto=proto, dest_ip=dest_ip
         )
     )
-    return prune_rule(pattern, rule, "POSTROUTING")
+    return prune_rule(pattern, rule, "nat", "POSTROUTING")
 
 
 def prune_prerouting(
@@ -135,21 +141,21 @@ def prune_prerouting(
     pattern = r"^([0-9]+)\s+DNAT\s+{proto}\s+\-\-\s+[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+\s+{host_ip}\s+{proto}\s+dpt\:{dport}\s+to\:{dest_ip}:{dport}$".format(
         proto=proto, host_ip=host_ip, dest_ip=dest_ip, dport=port
     )
-    return prune_rule(pattern, rule, "PREROUTING")
+    return prune_rule(pattern, rule, "nat", "PREROUTING")
 
 
-def prune_filter(rule: str, proto: str, host_ip: str, port: str) -> bool:
-    pattern = r"^([0-9]+)\s+ACCEPT\s+{proto}\s+\-\-\s+{host_ip}\s+0\.0\.0\.0\/0\s+{proto}\s+dpt\:{port}".format(
-        proto=proto, host_ip=host_ip, port=port
+def prune_filter(rule: str, proto: str, host_ip: str, dest_ip: str, port: str) -> bool:
+    pattern = r"^([0-9]+)\s+ACCEPT\s+{proto}\s+\-\-\s+{host_ip}\s+{dest_ip}\s+{proto}\s+dpt\:{port}".format(
+        proto=proto, host_ip=host_ip, dest_ip=dest_ip, port=port
     )
-    return prune_rule(pattern, rule, "FORWARD")
+    return prune_rule(pattern, rule, "filter", "FORWARD")
 
 
-def prune_rule(pattern: str, rule: str, chain: str) -> bool:
+def prune_rule(pattern: str, rule: str, table: str, chain: str) -> bool:
     match = re.match(pattern, rule)
     if match:
         lineno = match.groups()[0]
-        out, err = drop_line(lineno, chain=chain)
+        out, err = drop_line(lineno, table, chain=chain)
         if not err:
             return True
     return False
@@ -180,7 +186,7 @@ def prune_table(
                 if table == "nat":
                     match = prune_prerouting(rule, proto, host_ip, dest_ip, port)
                 else:
-                    match = prune_filter(rule, proto, host_ip, port)
+                    match = prune_filter(rule, proto, host_ip, dest_ip, port)
 
                 if match:
                     iptable = get_table(table)
@@ -198,7 +204,7 @@ def populate_tables(
 ) -> None:
     for proto in protocols:
         for port in ports:
-            append_filter_rule(proto, host_ip, port)
+            append_filter_rule(proto, host_ip, dest_ip, port)
             append_prerouting_rule(proto, host_ip, dest_ip, port)
         append_postrouting_rule(proto, dest_ip)
 
