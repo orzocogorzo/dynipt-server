@@ -188,14 +188,14 @@ def prune_rule(pattern: str, rule: str, table: str, chain: str) -> bool:
 
 
 def prune_tables(
-    protocols: list[str], host_ip: str, dest_ip: str, ports: list[str]
+    protocols: list, host_ip: str, dest_ip: str, ports: list
 ) -> None:
     prune_table("nat", protocols, host_ip, dest_ip, ports)
     prune_table("filter", protocols, host_ip, dest_ip, ports)
 
 
 def prune_table(
-    table: str, protocols: list[str], host_ip: str, dest_ip: str, ports: list[str]
+    table: str, protocols: list, host_ip: str, dest_ip: str, ports: list
 ) -> None:
     iptable = get_table(table)
     rules = iptable.split("\n")
@@ -226,7 +226,7 @@ def prune_table(
 
 
 def populate_tables(
-    protocols: list[str], host_ip: str, dest_ip: str, ports: list[str]
+    protocols: list, host_ip: str, dest_ip: str, ports: list
 ) -> None:
     for proto in protocols:
         for port in ports:
