@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=forking
 
-User=root
-Group=root
+User=dynipt
+Group=dynipt
 
 ExecStart=/opt/dyniptables/shell/start.sh
 ExecStop=/opt/dyniptables/shell/stop.sh
