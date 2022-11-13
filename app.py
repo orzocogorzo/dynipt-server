@@ -57,11 +57,11 @@ def drop_line(
             chain,
             lineno
         ],
-        stdin=(getenv("DYNIPT_PWD").encode(), None),
+        stdin=PIPE,
         stdout=PIPE,
         stderr=PIPE
     )
-    return p.communicate()
+    return p.communicate(input=getenv("DYNIPT_PWD"))
 
 
 def append_filter_rule(
@@ -87,11 +87,11 @@ def append_filter_rule(
             "-j",
             "ACCEPT",
         ],
-        stdin=(getenv("DYNIPT_PWD").encode(), None),
+        stdin=PIPE,
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate()
+    return p.communicate(input=getenv("DYNIPT_PWD"))
 
 
 def append_prerouting_rule(
@@ -117,11 +117,11 @@ def append_prerouting_rule(
             "--to-destination",
             "%s:%s" % (dest_ip, port),
         ],
-        stdin=(getenv("DYNIPT_PWD").encode(), None),
+        stdin=PIPE,
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate()
+    return p.communicate(input=getenv("DYNIPT_PWD"))
 
 
 def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
@@ -141,11 +141,11 @@ def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
             "-j",
             "MASQUERADE",
         ],
-        stdin=(getenv("DYNIPT_PWD").encode(), None),
+        stdin=PIPE,
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate()
+    return p.communicate(input=getenv("DYNIPT_PWD"))
 
 
 def get_table(table: str = "nat") -> str:
