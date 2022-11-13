@@ -61,7 +61,7 @@ def drop_line(
         stdout=PIPE,
         stderr=PIPE
     )
-    return p.communicate(input=getenv("DYNIPT_PWD"))
+    return p.communicate(input=getenv("DYNIPT_PWD").encode())
 
 
 def append_filter_rule(
@@ -91,7 +91,7 @@ def append_filter_rule(
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate(input=getenv("DYNIPT_PWD"))
+    return p.communicate(input=getenv("DYNIPT_PWD").encode())
 
 
 def append_prerouting_rule(
@@ -121,7 +121,7 @@ def append_prerouting_rule(
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate(input=getenv("DYNIPT_PWD"))
+    return p.communicate(input=getenv("DYNIPT_PWD").encode())
 
 
 def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
@@ -145,7 +145,7 @@ def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate(input=getenv("DYNIPT_PWD"))
+    return p.communicate(input=getenv("DYNIPT_PWD").encode())
 
 
 def get_table(table: str = "nat") -> str:
