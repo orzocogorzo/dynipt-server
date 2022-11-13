@@ -15,7 +15,7 @@ load_dotenv()
 app = Flask(__name__)
 
 
-def get_state() -> tuple[str, str]:
+def get_state() -> tuple:
     if not Path("var/state").is_file():
         Path("var/state").touch(mode=0o600)
         return ("", "")
@@ -29,7 +29,7 @@ def set_state(host_ip, dest_ip: str) -> None:
         f.write("%s:%s" % (host_ip, dest_ip))
 
 
-def fetch_ip():
+def fetch_ip() -> str:
     conn = HTTPConnection("ip.yunhost.org")
     conn.request("GET", "/")
     res = conn.getresponse()
@@ -41,16 +41,32 @@ def fetch_ip():
 
 def drop_line(
     lineno: str, table: str, chain: str = "PREROUTING"
-) -> tuple[bytes, bytes]:
-    p = Popen(["iptables", "-t", table, "-D", chain, lineno], stdout=PIPE, stderr=PIPE)
+) -> tuple:
+    p = Popen(["echo",
+            os.getenv("DYNIPT_PWD"),
+            "|",
+            "sudo",
+            "-S",
+            "iptables",
+            "-t",
+            table,
+            "-D",
+            chain,
+            lineno
+        ], stdout=PIPE, stderr=PIPE)
     return p.communicate()
 
 
 def append_filter_rule(
     proto: str, host_ip: str, dest_ip: str, port: str
-) -> tuple[bytes, bytes]:
+) -> tuple:
     p = Popen(
         [
+            "echo",
+            os.getenv("DYNIPT_PWD"),
+            "|",
+            "sudo",
+            "-S",
             "iptables",
             "-t",
             "filter",
@@ -75,9 +91,14 @@ def append_filter_rule(
 
 def append_prerouting_rule(
     proto: str, host_ip: str, dest_ip: str, port: str
-) -> tuple[bytes, bytes]:
+) -> tuple:
     p = Popen(
         [
+            "echo",
+            os.getenv("DYNIPT_PWD"),
+            "|",
+            "sudo",
+            "-S",
             "iptables",
             "-t",
             "nat",
@@ -100,9 +121,14 @@ def append_prerouting_rule(
     return p.communicate()
 
 
-def append_postrouting_rule(proto: str, dest_ip: str) -> tuple[bytes, bytes]:
+def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
     p = Popen(
         [
+            "echo",
+            os.getenv("DYNIPT_PWD"),
+            "|",
+            "sudo",
+            "-S",
             "iptables",
             "-t",
             "nat",
@@ -221,9 +247,9 @@ def index() -> str:
 
     last_host, last_ip = get_state()
 
-    protocols = getenv("PROTOCOLS", "tcp").split(",")
-    host_ip = getenv("HOST_IP")
-    ports = getenv("PORTS", "").split(",")
+    protocols = getenv("DYNIPT_PROTOCOLS", "tcp").split(",")
+    host_ip = getenv("DYNIPT_HOST_IP")
+    ports = getenv("DYNIPT_PORTS", "").split(",")
 
     if not host_ip or len(ports) == 0 or len(protocols) == 0:
         raise Exception("Bad configuration")
@@ -242,4 +268,10 @@ def index() -> str:
 
 
 if __name__ == "__main__":
-    app.run(port=8080, debug=True)
+    if getenv("DYNIPT_FRONT_SERVER") == "true":
+        host = "127.0.0.1"
+    else:
+        host = "0.0.0.0"
+        
+
+    app.run(host=host, port=8080, debug=True)
