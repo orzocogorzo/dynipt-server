@@ -21,7 +21,11 @@ def get_state() -> tuple:
         return ("", "")
 
     with open("var/state", "r") as f:
-        return tuple(f.read().split(":"))
+        address = tuple(f.read().split(":"))
+        if len(address) != 2:
+            return ("", "")
+        
+        return address
 
 
 def set_state(host_ip, dest_ip: str) -> None:
@@ -42,9 +46,8 @@ def fetch_ip() -> str:
 def drop_line(
     lineno: str, table: str, chain: str = "PREROUTING"
 ) -> tuple:
-    p = Popen(["echo",
-            os.getenv("DYNIPT_PWD"),
-            "|",
+    p = Popen(
+        [
             "sudo",
             "-S",
             "iptables",
@@ -53,7 +56,11 @@ def drop_line(
             "-D",
             chain,
             lineno
-        ], stdout=PIPE, stderr=PIPE)
+        ],
+        stdin=(getenv("DYNIPT_PWD").encode(), None),
+        stdout=PIPE,
+        stderr=PIPE
+    )
     return p.communicate()
 
 
@@ -62,9 +69,6 @@ def append_filter_rule(
 ) -> tuple:
     p = Popen(
         [
-            "echo",
-            os.getenv("DYNIPT_PWD"),
-            "|",
             "sudo",
             "-S",
             "iptables",
@@ -83,6 +87,7 @@ def append_filter_rule(
             "-j",
             "ACCEPT",
         ],
+        stdin=(getenv("DYNIPT_PWD").encode(), None),
         stdout=PIPE,
         stderr=PIPE,
     )
@@ -94,9 +99,6 @@ def append_prerouting_rule(
 ) -> tuple:
     p = Popen(
         [
-            "echo",
-            os.getenv("DYNIPT_PWD"),
-            "|",
             "sudo",
             "-S",
             "iptables",
@@ -115,6 +117,7 @@ def append_prerouting_rule(
             "--to-destination",
             "%s:%s" % (dest_ip, port),
         ],
+        stdin=(getenv("DYNIPT_PWD").encode(), None),
         stdout=PIPE,
         stderr=PIPE,
     )
@@ -124,9 +127,6 @@ def append_prerouting_rule(
 def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
     p = Popen(
         [
-            "echo",
-            os.getenv("DYNIPT_PWD"),
-            "|",
             "sudo",
             "-S",
             "iptables",
@@ -141,6 +141,7 @@ def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
             "-j",
             "MASQUERADE",
         ],
+        stdin=(getenv("DYNIPT_PWD").encode(), None),
         stdout=PIPE,
         stderr=PIPE,
     )
