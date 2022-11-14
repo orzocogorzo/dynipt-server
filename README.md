@@ -54,9 +54,9 @@ sudo chown -R dynipt: /opt/dyniptables
 Once you have the system requirements installed, next step is to install python requirements.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements.txt
+cd /opt/dyniptables
+sudo -u dynipt python3 -m venv .venv
+sudo -u dynipt .venv/bin/python -m pip install -r requirements.txt
 ```
 
 ## Config
@@ -86,31 +86,31 @@ DYNIPT_PWD=******
 
 ```bash
 # Start the service with
-sudo ./shell/start.sh
+sudo -u dynipt ./shell/start.sh
 
 # Stop the service with
-sudo ./shell/stop.sh
+sudo -u dynipt ./shell/stop.sh
 ```
 
 ### With systemd
 
-Another way to start/stop the service is as a systemd service. You can find an service definition example on `snippets/dyniptables.service`.
-Edit the file to fit to your environment and place it on the `/etc/systemd/system` directory. After that, run
+Another way to start/stop the service is as a systemd service. You can find an service definition example on `snippets/systemd.service`.
+Edit the file to fit to your environment and move and rename it as `/etc/systemd/system/dyniptables.service`. After that, run
 
 ```bash
-# Install the package
+# Install the systemd package
 sudo apt install -y systemd
 
-# To enable automatic boot time starts
+# Enable automatic boot time starts
 sudo systemctl enable dyniptables
 
-# To disable automatic boot time starts
+# Disable automatic boot time starts
 sudo systemctl disable dyniptables
 
-# To manually start the service
+# Manually start the service
 sudo systemctl start dyniptables
 
-# To manually stop the service
+# Manually stop the service
 sudo systemctl stop dyniptables
 ```
 
