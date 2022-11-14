@@ -17,7 +17,7 @@ that triggers a http request with [curl](https://curl.se/) every 5 minuts from s
 ## Installation
 On your VPS you will need to have installed `iptables` and `python3` packages with the `sudo` package and the `python3-venv` module.
 
-On your LAN terminal, you will need `curl`, or other command line http client to perform http requests to your VPS.
+On your LAN terminal, you will need **curl**, or other command line http client, like **wget**, to perform http requests to your VPS.
 
 ### System requirements
 
@@ -33,8 +33,7 @@ sudo apt install -y curl
 
 ### System user and directory
 
-The recomended way to install the service is creating a dedicated user to run the process and grant access to it to the service directory.
-This user will require sudo privileges to interact with iptables.
+The recomended way to install the service is creating a dedicated user to run the process and grant access to it to the service directory. This user will require sudo privileges to interact with iptables.
 
 ```bash
 # Create a dedicated user without login
@@ -57,6 +56,14 @@ Once you have the system requirements installed, next step is to install python 
 cd /opt/dyniptables
 sudo -u dynipt python3 -m venv .venv
 sudo -u dynipt .venv/bin/python -m pip install -r requirements.txt
+```
+
+### Open ports
+
+In case you have a firewall, like **ufw**, or **iptables** configured to drop packets as default policy, you will need to open port 8008 where nginx will be listening, or port 8080 in case you want to expose flask without a front server. To achive this, run the following command:
+
+```bash
+sudo iptables --table filter -A FORWARD -p tcp -s {your_vps_ip} --dport 8008 -j ACCEPT
 ```
 
 ## Config
