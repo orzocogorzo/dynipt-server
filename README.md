@@ -5,14 +5,14 @@ Dynamic binding of IPs with [iptables](http://iptables.org/) as reverse proxy to
 ## Description
 
 Tiny solution to setup a VPS as a gateway to your local network. Like a dyndns service but running at the level of the network/transport OSI layers.
-This is an alternative solution to your home stations requirements of static ip address without the need of a dynamic dns service and with capability
+This is an alternative solution to your home stations requirements for static ip address without the need for a dynamic dns service and with capability
 to work on top of IP address directly, without any domain name translations.
 
 ## How it works?
 
 The package has two pieces, a [flask](https://flask.palletsprojects.com/en/2.2.x/) microservice listening on an unofficial http port, like 8080,
-responsible of receiving, via http, your local network public ip and update the VPS iptables rules. The other piece of the puzzle is a crontab
-that triggers a http request with [curl](https://curl.se/) each 5 minuts from some terminal in your LAN network.
+in charge of receiving, via http, your local network public ip and update the VPS iptables rules. The other piece of the puzzle is a crontab
+that triggers a http request with [curl](https://curl.se/) every 5 minuts from some terminal in your LAN network.
 
 ## Installation
 On your VPS you will need to have installed `iptables` and `python3` packages with the `sudo` package and the `python3-venv` module.
@@ -118,5 +118,6 @@ sudo systemctl stop dyniptables
 
 Is recomended to expose the flask microservice behind a front service acting like a reverse proxy to your local ports. I use [nginx](https://nginx.org/en/)
 on my installation and you can find a reverse proxy configuration on the `snippets` subdirectory. To get nginx running on your VPS as a front server 
-install it with `sudo apt install -y nginx` and place the configuration file inside `/etc/nginx/cond.d` directory. Then run `sudo nginx -s reload` to
-load the new configuration.
+install it with `sudo apt install -y nginx` and move and rename the configuration to `/etc/nginx/cond.d/dyniptables.conf`. Then run `sudo nginx -s reload` to load the new configuration.
+
+For development or debugging pruposes, you may want to expose the python process directly to the network. Then, update your `.env` file and set the _DYNIPT_FRONT_SERVER_ to `false` and start your service as always. Rember to switch to local exposure behavior when you were finished.
