@@ -33,27 +33,26 @@ def set_state(host_ip, dest_ip: str) -> None:
         f.write("%s:%s" % (host_ip, dest_ip))
 
 
-def fetch_ip() -> str:
-    conn = HTTPConnection("ip.yunhost.org")
-    conn.request("GET", "/")
-    res = conn.getresponse()
-    if res.status == 200:
-        return res.read().decode()
-    else:
-        abort(500)
+def communicate(p: Popen) -> str:
+    out, err = p.communicate(input=getenv("DYNIPT_PWD", "").encode())
+    if err:
+        raise Exception(err.decode())
+
+    return out.decode()
 
 
-def drop_line(lineno: str, table: str, chain: str = "PREROUTING") -> tuple:
+def drop_line(lineno: str, table: str, chain: str = "PREROUTING") -> str:
     p = Popen(
         ["sudo", "-S", "iptables", "-t", table, "-D", chain, lineno],
         stdin=PIPE,
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate(input=getenv("DYNIPT_PWD").encode())
+
+    return communicate(p)
 
 
-def append_filter_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> tuple:
+def append_filter_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> str:
     p = Popen(
         [
             "sudo",
@@ -78,10 +77,11 @@ def append_filter_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> tup
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate(input=getenv("DYNIPT_PWD").encode())
+
+    return communicate(p)
 
 
-def append_prerouting_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> tuple:
+def append_prerouting_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> str:
     p = Popen(
         [
             "sudo",
@@ -106,10 +106,11 @@ def append_prerouting_rule(proto: str, host_ip: str, dest_ip: str, port: str) ->
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate(input=getenv("DYNIPT_PWD").encode())
+
+    return communicate(p)
 
 
-def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
+def append_postrouting_rule(proto: str, dest_ip: str) -> str:
     p = Popen(
         [
             "sudo",
@@ -130,12 +131,19 @@ def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate(input=getenv("DYNIPT_PWD", "").encode())
+
+    return communicate(p)
 
 
 def get_table(table: str = "nat") -> str:
-    p = Popen(["iptables", "-t", table, "-L", "-n", "--line-number"], stdout=PIPE)
-    return p.communicate()[0].decode()
+    p = Popen(
+        ["iptables", "-t", table, "-L", "-n", "--line-number"],
+        stdin=PIPE,
+        stdout=PIPE,
+        stderr=PIPE,
+    )
+
+    return communicate(p)
 
 
 def prune_postrouting(rule: str, proto: str, dest_ip: str) -> bool:
@@ -144,6 +152,7 @@ def prune_postrouting(rule: str, proto: str, dest_ip: str) -> bool:
             proto=proto, dest_ip=dest_ip
         )
     )
+
     return prune_rule(pattern, rule, "nat", "POSTROUTING")
 
 
@@ -153,6 +162,7 @@ def prune_prerouting(
     pattern = r"^([0-9]+)\s+DNAT\s+{proto}\s+\-\-\s+[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+\s+{host_ip}\s+{proto}\s+dpt\:{dport}\s+to\:{dest_ip}:{dport}$".format(
         proto=proto, host_ip=host_ip, dest_ip=dest_ip, dport=port
     )
+
     return prune_rule(pattern, rule, "nat", "PREROUTING")
 
 
@@ -160,16 +170,18 @@ def prune_filter(rule: str, proto: str, host_ip: str, dest_ip: str, port: str) -
     pattern = r"^([0-9]+)\s+ACCEPT\s+{proto}\s+\-\-\s+{host_ip}\s+{dest_ip}\s+{proto}\s+dpt\:{port}".format(
         proto=proto, host_ip=host_ip, dest_ip=dest_ip, port=port
     )
+
     return prune_rule(pattern, rule, "filter", "FORWARD")
 
 
 def prune_rule(pattern: str, rule: str, table: str, chain: str) -> bool:
     match = re.match(pattern, rule)
+
     if match:
         lineno = match.groups()[0]
-        out, err = drop_line(lineno, table, chain=chain)
-        if not err:
-            return True
+        drop_line(lineno, table, chain=chain)
+        return True
+
     return False
 
 
@@ -225,26 +237,29 @@ def index() -> str:
         dest_ip = request.remote_addr
 
     if not dest_ip:
-        abort(400)
+        return abort(400, "Remote ip not known")
 
     last_host, last_ip = get_state()
 
-    protocols = getenv("DYNIPT_PROTOCOLS", "tcp").split(",")
+    protocols = getenv("DYNIPT_PROTOCOLS", "").split(",")
     host_ip = getenv("DYNIPT_HOST_IP")
     ports = getenv("DYNIPT_PORTS", "").split(",")
 
     if not host_ip or len(ports) == 0 or len(protocols) == 0:
-        raise Exception("Bad configuration")
+        return abort(500, "Bad configuration")
 
-    if last_host != host_ip:
-        prune_tables(protocols, last_host, last_ip, ports)
+    try:
+        if last_host != host_ip:
+            prune_tables(protocols, last_host, last_ip, ports)
 
-    if dest_ip != last_ip:
-        prune_tables(protocols, host_ip, last_ip, ports)
+        if dest_ip != last_ip:
+            prune_tables(protocols, host_ip, last_ip, ports)
 
-    if last_host != host_ip or dest_ip != last_ip:
-        populate_tables(protocols, host_ip, dest_ip, ports)
-        set_state(host_ip, dest_ip)
+        if last_host != host_ip or dest_ip != last_ip:
+            populate_tables(protocols, host_ip, dest_ip, ports)
+            set_state(host_ip, dest_ip)
+    except Exception as e:
+        return abort(500, description=str(e))
 
     return "%s:%s" % (host_ip, dest_ip)
 
