@@ -35,7 +35,7 @@ def set_state(host_ip, dest_ip: str) -> None:
 
 def communicate(p: Popen) -> str:
     out, err = p.communicate(input=getenv("DYNIPT_PWD", "").encode())
-    if err:
+    if err and not re.match(r"^\[sudo\] password for", err.decode()):
         raise Exception(err.decode())
 
     return out.decode()
@@ -137,7 +137,7 @@ def append_postrouting_rule(proto: str, dest_ip: str) -> str:
 
 def get_table(table: str = "nat") -> str:
     p = Popen(
-        ["iptables", "-t", table, "-L", "-n", "--line-number"],
+        ["sudo", "-S", "iptables", "-t", table, "-L", "-n", "--line-number"],
         stdin=PIPE,
         stdout=PIPE,
         stderr=PIPE,
