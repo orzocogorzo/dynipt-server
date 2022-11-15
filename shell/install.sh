@@ -8,7 +8,7 @@ sudo useradd -M -s /usr/sbin/nologin dynipt
 # User creation
 sudo useradd -M -s /usr/sbin/nologin dynipt
 read -s -p "Set dynipt user password: " DYNIPT_PWD
-(echo "$DYNIPT_PWD"; echo "$DYNIPT_PWD") | sudo passwd dynipt
+echo -e "$DYNIPT_PWD\n$DYNIPT_PWD" | sudo passwd dynipt
 sudo usermod -aG sudo dynipt
 
 # Package download
