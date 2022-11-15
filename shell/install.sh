@@ -3,7 +3,6 @@
 # System requirements
 sudo apt update
 sudo apt install -y sudo iptables python3 python3-venv git nginx curl
-sudo useradd -M -s /usr/sbin/nologin dynipt
 
 # User creation
 sudo useradd -M -s /usr/sbin/nologin dynipt
