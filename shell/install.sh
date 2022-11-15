@@ -25,7 +25,7 @@ sudo -u dynipt python3 -m venv .venv
 sudo -u dynipt .venv/bin/python -m pip install -r requirements.txt
 
 # Open dyniptables port
-sudo iptables -t filter -I FORWARD -p tcp -s $HOST_PUBLIC_IP --dport 8008 -j ACCEPT
+sudo iptables -t filter -I FORWARD -p tcp -s $HOST_PUBLIC_IP --dport 8000 -j ACCEPT
 
 # System configuration
 sudo cp snippets/nginx.conf /etc/nginx/conf.d/dyniptables.conf

@@ -35,7 +35,7 @@ def set_state(host_ip, dest_ip: str) -> None:
 
 def communicate(p: Popen) -> str:
     out, err = p.communicate(input=getenv("DYNIPT_PWD", "").encode())
-    if err and not re.match(r"^\[sudo\] password for", err.decode()):
+    if err and not re.search(r"\[sudo\] password for", err.decode()):
         raise Exception(err.decode())
 
     return out.decode()

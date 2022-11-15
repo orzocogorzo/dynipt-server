@@ -84,12 +84,12 @@ sudo -u dynipt .venv/bin/python -m pip install -r requirements.txt
 #### Open ports
 
 In case you have a firewall, like **ufw**, or **iptables** configured to drop packets
-as default policy, you will need to open port 8008 where nginx will be listening,
+as default policy, you will need to open port 8000 where nginx will be listening,
 or port 8080 in case you want to expose flask without a front server. To achive
 this, run the following command:
 
 ```bash
-sudo iptables --table filter -A FORWARD -p tcp -s {your_vps_ip} --dport 8008 -j ACCEPT
+sudo iptables --table filter -A FORWARD -p tcp -s {your_vps_ip} --dport 8000 -j ACCEPT
 ```
 
 ## Config
