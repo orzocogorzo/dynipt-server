@@ -25,7 +25,7 @@ every 5 minuts from some terminal in your LAN network.
 
 To install **DynIptables** on your VPS run:
 
-````bash
+```bash
 curl https://github.com/orzocogorzo/dyniptables/blob/main/shell/install.sh > install-dyniptables && bash ./install-dyniptables
 ```
 
@@ -46,7 +46,7 @@ a non-debian based OS, follow the next steps and modify
 ```bash
 # On the VPS
 sudo apt install -y sudo iptables python3 python3-venv git
-````
+```
 
 #### System user and directory
 
