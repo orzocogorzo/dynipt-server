@@ -24,7 +24,7 @@ def get_state() -> tuple:
         address = tuple(f.read().split(":"))
         if len(address) != 2:
             return ("", "")
-        
+
         return address
 
 
@@ -43,30 +43,17 @@ def fetch_ip() -> str:
         abort(500)
 
 
-def drop_line(
-    lineno: str, table: str, chain: str = "PREROUTING"
-) -> tuple:
+def drop_line(lineno: str, table: str, chain: str = "PREROUTING") -> tuple:
     p = Popen(
-        [
-            "sudo",
-            "-S",
-            "iptables",
-            "-t",
-            table,
-            "-D",
-            chain,
-            lineno
-        ],
+        ["sudo", "-S", "iptables", "-t", table, "-D", chain, lineno],
         stdin=PIPE,
         stdout=PIPE,
-        stderr=PIPE
+        stderr=PIPE,
     )
     return p.communicate(input=getenv("DYNIPT_PWD").encode())
 
 
-def append_filter_rule(
-    proto: str, host_ip: str, dest_ip: str, port: str
-) -> tuple:
+def append_filter_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> tuple:
     p = Popen(
         [
             "sudo",
@@ -94,9 +81,7 @@ def append_filter_rule(
     return p.communicate(input=getenv("DYNIPT_PWD").encode())
 
 
-def append_prerouting_rule(
-    proto: str, host_ip: str, dest_ip: str, port: str
-) -> tuple:
+def append_prerouting_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> tuple:
     p = Popen(
         [
             "sudo",
@@ -145,7 +130,7 @@ def append_postrouting_rule(proto: str, dest_ip: str) -> tuple:
         stdout=PIPE,
         stderr=PIPE,
     )
-    return p.communicate(input=getenv("DYNIPT_PWD").encode())
+    return p.communicate(input=getenv("DYNIPT_PWD", "").encode())
 
 
 def get_table(table: str = "nat") -> str:
@@ -188,9 +173,7 @@ def prune_rule(pattern: str, rule: str, table: str, chain: str) -> bool:
     return False
 
 
-def prune_tables(
-    protocols: list, host_ip: str, dest_ip: str, ports: list
-) -> None:
+def prune_tables(protocols: list, host_ip: str, dest_ip: str, ports: list) -> None:
     prune_table("nat", protocols, host_ip, dest_ip, ports)
     prune_table("filter", protocols, host_ip, dest_ip, ports)
 
@@ -226,9 +209,7 @@ def prune_table(
                     rules = iptable.split("\n")
 
 
-def populate_tables(
-    protocols: list, host_ip: str, dest_ip: str, ports: list
-) -> None:
+def populate_tables(protocols: list, host_ip: str, dest_ip: str, ports: list) -> None:
     for proto in protocols:
         for port in ports:
             append_filter_rule(proto, host_ip, dest_ip, port)
@@ -273,6 +254,5 @@ if __name__ == "__main__":
         host = "127.0.0.1"
     else:
         host = "0.0.0.0"
-        
 
     app.run(host=host, port=8080, debug=True)
