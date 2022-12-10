@@ -35,3 +35,7 @@ sudo cp snippets/systemd.service /etc/systemd/system/dyniptables.service
 sudo nginx -s reload
 sudo systemctl enable dyniptables
 sudo systemctl start dyniptables
+
+echo "DynIptables is installed and running!"
+echo
+.venv/bin/python app.py token
