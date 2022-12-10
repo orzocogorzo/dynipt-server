@@ -232,26 +232,34 @@ def prune_rule(
 
 
 def delete_chain(table_name: str, chain_name: str) -> None:
-    p = Popen(
-        ["sudo", "-S", "iptables", "-t", table_name, "-X", chain_name],
-        stdin=PIPE,
-        stdout=PIPE,
-        stderr=PIPE,
-    )
-
     try:
+        p = Popen(
+            ["sudo", "-S", "iptables", "-t", table_name, "-F", chain_name],
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+        )
+        communicate(p)
+        p = Popen(
+            ["sudo", "-S", "iptables", "-t", table_name, "-X", chain_name],
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+        )
         communicate(p)
     except:
+        # Can fail because on setup, the chains doesn't exists and its OK
         pass
 
 
 def prune_tables() -> None:
     chains = [("filter", "FORWARD"), ("nat", "PREROUTING"), ("nat", "POSTROUTING")]
     for table_name, chain_name in chains:
+        prune_chain(table_name, chain_name)
+
         custom_chain = "DYNIPT_" + chain_name
         delete_chain(table_name, custom_chain)
         create_chain(table_name, custom_chain)
-        prune_chain(table_name, chain_name)
 
 
 def prune_chain(table_name: str, chain_name: str) -> None:
