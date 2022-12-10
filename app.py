@@ -3,6 +3,7 @@ import re
 from subprocess import Popen, PIPE
 from pathlib import Path
 from typing import Optional
+from hashlib import sha256
 
 # VENDOR
 from dotenv import load_dotenv
@@ -308,6 +309,10 @@ def index() -> str:
     if not dest_ip:
         return abort(400, "Remote ip not known")
 
+    token = request.headers.get("Authorization")
+    if not token or token != sha256(getenv("DYNIPT_PWD", "").encode()).hexdigest():
+        return abort(401, "Bad credentials")
+
     last_host, last_ip = get_state()
 
     protocols = getenv("DYNIPT_PROTOCOLS", "").split(",")
@@ -333,6 +338,23 @@ def index() -> str:
 
 
 if __name__ == "__main__":
+    import sys
+
+    if "token" in sys.argv:
+        if not getenv("DYNIPT_PWD"):
+            raise Exception("Not dynipt password in .env file")
+
+        if not getenv("DYNIPT_HOST_IP"):
+            raise Exception("Not dynipt host_ip in .env file")
+
+        token = sha256(getenv("DYNIPT_PWD", "").encode()).hexdigest()
+        host_ip = getenv("DYNIPT_HOST_IP")
+        print("DYNIPT_TOKEN: " + token)
+        print(
+            f"Request example: curl -H 'Authorization: {token}' http://{host_ip}:8000"
+        )
+        exit()
+
     if getenv("DYNIPT_FRONT_SERVER") == "true":
         host = "127.0.0.1"
     else:
