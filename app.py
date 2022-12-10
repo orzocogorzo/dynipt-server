@@ -3,7 +3,6 @@ import re
 from subprocess import Popen, PIPE
 from pathlib import Path
 from typing import Optional
-from http.client import HTTPConnection, HTTPException
 
 # VENDOR
 from dotenv import load_dotenv
@@ -41,9 +40,9 @@ def communicate(p: Popen) -> str:
     return out.decode()
 
 
-def drop_line(lineno: str, table: str, chain: str = "PREROUTING") -> str:
+def drop_line(table_name: str, chain_name: str, lineno: str) -> str:
     p = Popen(
-        ["sudo", "-S", "iptables", "-t", table, "-D", chain, lineno],
+        ["sudo", "-S", "iptables", "-t", table_name, "-D", chain_name, lineno],
         stdin=PIPE,
         stdout=PIPE,
         stderr=PIPE,
@@ -61,7 +60,7 @@ def append_filter_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> str
             "-t",
             "filter",
             "-I",
-            "FORWARD",
+            "DYNIPT_FORWARD",
             "-p",
             proto,
             "-s",
@@ -90,7 +89,7 @@ def append_prerouting_rule(proto: str, host_ip: str, dest_ip: str, port: str) ->
             "-t",
             "nat",
             "-A",
-            "PREROUTING",
+            "DYNIPT_PREROUTING",
             "-p",
             proto,
             "-d",
@@ -119,7 +118,7 @@ def append_postrouting_rule(proto: str, dest_ip: str) -> str:
             "-t",
             "nat",
             "-A",
-            "POSTROUTING",
+            "DYNIPT_POSTROUTING",
             "-p",
             proto,
             "-d",
@@ -135,9 +134,59 @@ def append_postrouting_rule(proto: str, dest_ip: str) -> str:
     return communicate(p)
 
 
-def get_table(table: str = "nat") -> str:
+def insert_jump_rule(
+    table_name: str,
+    chain_name: str,
+    dest_ip: str,
+    proto: str,
+    port: Optional[str] = None,
+) -> None:
+    custom_chain_name = "DYNIPT_" + chain_name
+    command = [
+        "sudo",
+        "-S",
+        "iptables",
+        "-t",
+        table_name,
+        "-I",
+        chain_name,
+        "-p",
+        proto,
+        "-d",
+        dest_ip,
+        "-J",
+        custom_chain_name,
+    ]
+
+    if port:
+        command = (
+            command[:-2]
+            + [
+                "--port",
+                port,
+            ]
+            + command[-2:]
+        )
+
+    p = Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    communicate(p)
+
+
+def create_chain(table_name: str, chain_name: str) -> None:
     p = Popen(
-        ["sudo", "-S", "iptables", "-t", table, "-L", "-n", "--line-number"],
+        ["sudo", "-S", "iptables", "-t", table_name, "-N", chain_name],
+        stdin=PIPE,
+        stdout=PIPE,
+        stderr=PIPE,
+    )
+
+    communicate(p)
+
+
+def get_table(table_name: str) -> str:
+    p = Popen(
+        ["sudo", "-S", "iptables", "-t", table_name, "-L", "-n", "--line-number"],
         stdin=PIPE,
         stdout=PIPE,
         stderr=PIPE,
@@ -146,87 +195,91 @@ def get_table(table: str = "nat") -> str:
     return communicate(p)
 
 
-def prune_postrouting(rule: str, proto: str, dest_ip: str) -> bool:
-    pattern = (
-        r"^([0-9]+)\s+MASQUERADE\s+{proto}\s+\-\-\s+0.0.0.0\/0\s+{dest_ip}$".format(
-            proto=proto, dest_ip=dest_ip
-        )
-    )
+def get_chain(table_name: str, chain_name: str) -> list[str]:
+    iptable = get_table(table_name)
+    rules = iptable.split("\n")
 
-    return prune_rule(pattern, rule, "nat", "POSTROUTING")
+    chain_rules = []
+    inside_chain = False
+    for rule in rules:
+        if not inside_chain:
+            inside_chain = re.match(r"^Chain " + chain_name, rule)
+            continue
+
+        inside_chain = re.match(r"^Chain", rule) is None
+        if not inside_chain:
+            continue
+
+        chain_rules.append(rule)
+
+    return chain_rules
 
 
-def prune_prerouting(
-    rule: str, proto: str, host_ip: str, dest_ip: str, port: str
+def prune_rule(
+    table_name: str, chain_name: str, rule: str, pattern: str, index_delta: int = 0
 ) -> bool:
-    pattern = r"^([0-9]+)\s+DNAT\s+{proto}\s+\-\-\s+[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+\s+{host_ip}\s+{proto}\s+dpt\:{dport}\s+to\:{dest_ip}:{dport}$".format(
-        proto=proto, host_ip=host_ip, dest_ip=dest_ip, dport=port
-    )
-
-    return prune_rule(pattern, rule, "nat", "PREROUTING")
-
-
-def prune_filter(rule: str, proto: str, host_ip: str, dest_ip: str, port: str) -> bool:
-    pattern = r"^([0-9]+)\s+ACCEPT\s+{proto}\s+\-\-\s+{host_ip}\s+{dest_ip}\s+{proto}\s+dpt\:{port}".format(
-        proto=proto, host_ip=host_ip, dest_ip=dest_ip, port=port
-    )
-
-    return prune_rule(pattern, rule, "filter", "FORWARD")
-
-
-def prune_rule(pattern: str, rule: str, table: str, chain: str) -> bool:
     match = re.match(pattern, rule)
 
     if match:
         lineno = match.groups()[0]
-        drop_line(lineno, table, chain=chain)
+        drop_line(table_name, chain_name, str(int(lineno) + index_delta))
         return True
 
     return False
 
 
-def prune_tables(protocols: list, host_ip: str, dest_ip: str, ports: list) -> None:
-    prune_table("nat", protocols, host_ip, dest_ip, ports)
-    prune_table("filter", protocols, host_ip, dest_ip, ports)
+def delete_chain(table_name: str, chain_name: str) -> None:
+    p = Popen(
+        ["sudo", "-S", "iptables", "-t", table_name, "-X", chain_name],
+        stdin=PIPE,
+        stdout=PIPE,
+        stderr=PIPE,
+    )
+
+    communicate(p)
 
 
-def prune_table(
-    table: str, protocols: list, host_ip: str, dest_ip: str, ports: list
-) -> None:
-    iptable = get_table(table)
-    rules = iptable.split("\n")
+def prune_tables() -> None:
+    chains = [("filter", "FORWARD"), ("nat", "PREROUTING"), ("nat", "POSTROUTING")]
+    for table_name, chain_name in chains:
+        delete_chain(table_name, "DYNIPT_" + chain_name)
+        prune_chain(table_name, chain_name)
 
-    while True:
-        if len(rules) == 0:
-            break
 
-        rule = rules.pop(0).strip()
+def prune_chain(table_name: str, chain_name: str) -> None:
+    rules = get_chain(table_name, chain_name)
 
-        for proto in protocols:
-            for port in ports:
-                match = False
-                if table == "nat":
-                    match = prune_prerouting(rule, proto, host_ip, dest_ip, port)
-                else:
-                    match = prune_filter(rule, proto, host_ip, dest_ip, port)
-
-                if match:
-                    iptable = get_table(table)
-                    rules = iptable.split("\n")
-
-            if table == "nat":
-                match = prune_postrouting(rule, proto, dest_ip)
-                if match:
-                    iptable = get_table(table)
-                    rules = iptable.split("\n")
+    index_delta = 0
+    for rule in rules:
+        pattern = r"^([0-9]+).*DYNIPT_" + chain_name + "$"
+        if prune_rule(table_name, chain_name, rule, pattern, index_delta):
+            index_delta = index_delta - 1
 
 
 def populate_tables(protocols: list, host_ip: str, dest_ip: str, ports: list) -> None:
     for proto in protocols:
         for port in ports:
+            insert_jump_rule("filter", "FORWARD", host_ip, proto, port)
+            insert_jump_rule("nat", "PREROUTING", host_ip, proto, port)
             append_filter_rule(proto, host_ip, dest_ip, port)
             append_prerouting_rule(proto, host_ip, dest_ip, port)
+
+        insert_jump_rule("nat", "POSTROUTING", dest_ip, proto)
         append_postrouting_rule(proto, dest_ip)
+
+
+def get_backup() -> str:
+    p = Popen(["sudo", "-S", "iptables-save"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+    return communicate(p)
+
+
+def backup_resotre(backup: str) -> None:
+    file_path = "/tmp/dynipt-v4.bak"
+    with open(file_path, "w") as f:
+        f.write(backup)
+        p = Popen(["sudo", "-S", "iptables-restore", "-4", file_path])
+        communicate(p)
 
 
 @app.route("/")
@@ -248,17 +301,16 @@ def index() -> str:
     if not host_ip or len(ports) == 0 or len(protocols) == 0:
         return abort(500, "Bad configuration")
 
+    backup = None
     try:
-        if last_host != host_ip:
-            prune_tables(protocols, last_host, last_ip, ports)
-
-        if dest_ip != last_ip:
-            prune_tables(protocols, host_ip, last_ip, ports)
-
         if last_host != host_ip or dest_ip != last_ip:
+            backup = get_backup()
+            prune_tables()
             populate_tables(protocols, host_ip, dest_ip, ports)
             set_state(host_ip, dest_ip)
     except Exception as e:
+        if backup:
+            backup_resotre(backup)
         return abort(500, description=str(e))
 
     return "%s:%s" % (host_ip, dest_ip)
