@@ -1,0 +1,1 @@
+*/5 * * * * sleep 53 ; curl -fs -H 'Authorization: ***********' http://*.*.*.*:8000 >/dev/null
