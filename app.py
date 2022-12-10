@@ -37,10 +37,13 @@ def communicate(p: Popen) -> str:
     if err and not re.search(r"\[sudo\] password for", err.decode()):
         raise Exception(err.decode())
 
-    return out.decode()
+    if out:
+        return out.decode()
+    else:
+        return ""
 
 
-def drop_line(table_name: str, chain_name: str, lineno: str) -> str:
+def drop_line(table_name: str, chain_name: str, lineno: str) -> None:
     p = Popen(
         ["sudo", "-S", "iptables", "-t", table_name, "-D", chain_name, lineno],
         stdin=PIPE,
@@ -48,7 +51,7 @@ def drop_line(table_name: str, chain_name: str, lineno: str) -> str:
         stderr=PIPE,
     )
 
-    return communicate(p)
+    communicate(p)
 
 
 def append_filter_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> str:
@@ -154,7 +157,7 @@ def insert_jump_rule(
         proto,
         "-d",
         dest_ip,
-        "-J",
+        "-j",
         custom_chain_name,
     ]
 
@@ -162,7 +165,7 @@ def insert_jump_rule(
         command = (
             command[:-2]
             + [
-                "--port",
+                "--dport",
                 port,
             ]
             + command[-2:]
@@ -236,13 +239,18 @@ def delete_chain(table_name: str, chain_name: str) -> None:
         stderr=PIPE,
     )
 
-    communicate(p)
+    try:
+        communicate(p)
+    except:
+        pass
 
 
 def prune_tables() -> None:
     chains = [("filter", "FORWARD"), ("nat", "PREROUTING"), ("nat", "POSTROUTING")]
     for table_name, chain_name in chains:
-        delete_chain(table_name, "DYNIPT_" + chain_name)
+        custom_chain = "DYNIPT_" + chain_name
+        delete_chain(table_name, custom_chain)
+        create_chain(table_name, custom_chain)
         prune_chain(table_name, chain_name)
 
 
@@ -251,7 +259,7 @@ def prune_chain(table_name: str, chain_name: str) -> None:
 
     index_delta = 0
     for rule in rules:
-        pattern = r"^([0-9]+).*DYNIPT_" + chain_name + "$"
+        pattern = r"^([0-9]+)\s+DYNIPT_" + chain_name
         if prune_rule(table_name, chain_name, rule, pattern, index_delta):
             index_delta = index_delta - 1
 
@@ -278,7 +286,7 @@ def backup_resotre(backup: str) -> None:
     file_path = "/tmp/dynipt-v4.bak"
     with open(file_path, "w") as f:
         f.write(backup)
-        p = Popen(["sudo", "-S", "iptables-restore", "-4", file_path])
+        p = Popen(["sudo", "-S", "iptables-restore", file_path])
         communicate(p)
 
 
