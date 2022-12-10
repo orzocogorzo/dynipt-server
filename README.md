@@ -29,12 +29,19 @@ To install **DynIptables** on your VPS run:
 curl https://raw.githubusercontent.com/orzocogorzo/dyniptables/main/shell/install.sh > install-dyniptables && bash ./install-dyniptables
 ```
 
+Once installed, to get your authorization token, run:
+
+```bash
+.venv/bin/python app.py token
+```
+
 ### On your local machine
 
 On your LAN terminal, you will need **curl**, or other command line http client,
 like **wget**, to perform http requests to your VPS and a **cron** daemon running.
-Edit your crontab with `crontab -e` and copy the content of the `snippets/crontab.sh`
-replacing `*.*.*.*` with your server public ip adress.
+Edit your crontab with `crontab -e` and copy the content of the `snippets/crontab.txt`
+replacing `*.*.*.*` with your server public ip adress and the `Authorization: *******`
+with your token.
 
 ### Manual installation
 
