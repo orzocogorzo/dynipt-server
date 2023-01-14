@@ -176,3 +176,13 @@ For development or debugging pruposes, you may want to expose the python process
 directly to the network. Then, update your `.env` file and set the _DYNIPT_FRONT_SERVER_
 to `false` and start your service as always. Rember to switch to local exposure
 behavior when you were finished.
+
+## Bidirectional Proxy
+
+Suppose you have an email service on your local machine, or perhaps an xmpp server. In that case,
+you will need your outgoing communications to reach the internet through your VPS to be bound to
+your public IP. In that case, you need your VPS to work as a proxy and a reverse proxy at the same time.
+reverse proxy at the same time. If this is your case, I recommend you to use, at the same time as DynIptables, 
+[sshuttle](https://github.com/sshuttle/sshuttle) on your local machine to easily route your packets through the VPS.
+Configure it as [systemd service](https://perfecto25.medium.com/using-sshuttle-as-a-service-bec2684a65fe) to
+achive more reliability on the connection.
