@@ -32,7 +32,7 @@ curl https://raw.githubusercontent.com/orzocogorzo/dyniptables/main/shell/instal
 Once installed, to get your authorization token, run:
 
 ```bash
-.venv/bin/python app.py token
+/opt/dyniptables/.venv/bin/python app.py token
 ```
 
 ### On your local machine
