@@ -26,7 +26,7 @@ every 5 minuts from some terminal in your LAN network.
 To install **DynIptables** on your VPS run:
 
 ```bash
-curl https://raw.githubusercontent.com/orzocogorzo/dyniptables/main/shell/install.sh > install-dyniptables && bash ./install-dyniptables
+curl https://raw.githubusercontent.com/orzocogorzo/dynipt-server/main/sh/install.sh > install-dyniptables && bash ./install-dyniptables
 ```
 
 Once installed, to get your authorization token, run:
