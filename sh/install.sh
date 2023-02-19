@@ -33,6 +33,7 @@ sudo iptables -t filter -I FORWARD -p tcp -s $HOST_PUBLIC_IP --dport 8000 -j ACC
 sudo cp snippets/nginx.conf /etc/nginx/conf.d/dynipt-server.conf
 sudo rm /etc/nginx/sites-enabled/default
 sudo cp snippets/systemd.service /etc/systemd/system/dynipt-server.service
+sudo systemctl daemon-reload
 
 # Service start
 sudo nginx -s reload
