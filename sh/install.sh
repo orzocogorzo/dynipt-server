@@ -26,7 +26,7 @@ cd $DIR
 sudo -u dynipt python3 -m venv .venv
 sudo -u dynipt .venv/bin/python -m pip install -r requirements.txt
 
-# Open dyniptables port
+# Open dynipt server port
 sudo iptables -t filter -I FORWARD -p tcp -s $HOST_PUBLIC_IP --dport 8000 -j ACCEPT
 
 # System configuration
@@ -37,9 +37,9 @@ sudo systemctl daemon-reload
 
 # Service start
 sudo nginx -s reload
-sudo systemctl enable dyniptables
-sudo systemctl start dyniptables
+sudo systemctl enable dynipt-server
+sudo systemctl start dynipt-server
 
-echo "DynIptables is installed and running!"
+echo "DynIPt server is installed and running!"
 echo
 .venv/bin/python app.py token
