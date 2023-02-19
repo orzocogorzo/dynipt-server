@@ -342,10 +342,10 @@ if __name__ == "__main__":
 
     if "token" in sys.argv:
         if not getenv("DYNIPT_PWD"):
-            raise Exception("Not dynipt password in .env file")
+            raise Exception("Not DynIPt password in .env file")
 
         if not getenv("DYNIPT_HOST_IP"):
-            raise Exception("Not dynipt host_ip in .env file")
+            raise Exception("Not DynIPt host_ip in .env file")
 
         token = sha256(getenv("DYNIPT_PWD", "").encode()).hexdigest()
         host_ip = getenv("DYNIPT_HOST_IP")

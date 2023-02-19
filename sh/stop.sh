@@ -6,8 +6,9 @@ if [ -f var/process.pid ]; then
     kill -9 $(cat var/process.pid)
     rm var/process.pid
     truncate -s 0 var/state
+    echo "DynIPt server stopped"
 else
-    echo "No running process"
+    echo "No DynIPt server running"
 fi
 
 exit 0

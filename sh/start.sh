@@ -3,7 +3,7 @@
 cd $(dirname $0) && cd ..
 
 if [ -f var/process.pid ]; then
-    echo "Another process is running"
+    echo "DynIPt server is running"
 fi
 
 source .env
@@ -14,6 +14,7 @@ else
     host="0.0.0.0"
 fi
 
-nohup .venv/bin/gunicorn -w 2 -b $host:8080 app:app > /dev/null &
+nohup .venv/bin/gunicorn -w 3 -b $host:8080 app:app > /dev/null &
 echo $! > var/process.pid
+echo "DynIPt server started"
 exit 0
