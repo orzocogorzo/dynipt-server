@@ -39,7 +39,7 @@ Once installed, to get your authorization token, run:
 
 On your LAN terminal, you will need **curl**, or other command line http client,
 like **wget**, to perform http requests to your VPS and a **cron** daemon running.
-Edit your crontab with `crontab -e` and copy the content of the `snippets/crontab.txt`
+Edit your crontab with `crontab -e` and copy the content of the [`snippets/crontab.txt`](https://github.com/orzocogorzo/dyniptables/blob/main/snippets/crontab.txt)
 replacing `*.*.*.*` with your server public ip adress and the `Authorization: *******`
 with your token.
 
@@ -141,7 +141,7 @@ sudo -u dynipt ./shell/stop.sh
 ### With systemd
 
 Another way to start/stop the service is as a systemd service. You can find an
-service definition example on `snippets/systemd.service`. Edit the file to fit
+service definition example on [`snippets/systemd.service`](https://github.com/orzocogorzo/dyniptables/blob/main/snippets/systemd.service). Edit the file to fit
 to your environment and move and rename it as `/etc/systemd/system/dyniptables.service`.
 After that, run
 
@@ -166,7 +166,7 @@ sudo systemctl stop dyniptables
 
 Is recomended to expose the flask microservice behind a front service acting like
 a reverse proxy to your local ports. I use [nginx](https://nginx.org/en/) on my
-installation and you can find a reverse proxy configuration on the `snippets` subdirectory.
+installation and you can find a reverse proxy configuration on the [`snippets/nginx.conf`](https://github.com/orzocogorzo/dyniptables/blob/main/snippets/nginx.conf) file.
 To get nginx running on your VPS as a front server install it with
 `sudo apt install -y nginx` and move and rename the configuration to
 `/etc/nginx/cond.d/dyniptables.conf`. Then run `sudo nginx -s reload` to load the
@@ -182,7 +182,7 @@ behavior when you were finished.
 Suppose you have an email service on your local machine, or perhaps an xmpp server. In that case,
 you will need your outgoing communications to reach the internet through your VPS to be bound to
 your public IP. In that case, you need your VPS to work as a proxy and a reverse proxy at the same time.
-reverse proxy at the same time. If this is your case, I recommend you to use, at the same time as DynIptables, 
+If this is your case, I recommend you to use, at the same time as DynIptables, 
 [sshuttle](https://github.com/sshuttle/sshuttle) on your local machine to easily route your packets through the VPS.
 Configure it as [systemd service](https://perfecto25.medium.com/using-sshuttle-as-a-service-bec2684a65fe) to
 achive more reliability on the connection.
