@@ -1,5 +1,5 @@
 [Unit]
-Description=DynIptables
+Description=DynIPt server
 After=network.target
 
 [Service]
@@ -8,8 +8,8 @@ Type=forking
 User=dynipt
 Group=dynipt
 
-ExecStart=/opt/dyniptables/shell/start.sh
-ExecStop=/opt/dyniptables/shell/stop.sh
+ExecStart=/opt/dynipt-server/sh/start.sh
+ExecStop=/opt/dynipt-server/sh/stop.sh
 KillMode=mixed
 
 [Install]
