@@ -286,7 +286,7 @@ def delete_chain(table_name: str, chain_name: str) -> None:
 
 
 def prune_tables() -> None:
-    chains = [("filter", "ACCEPT"), ("filter", "FORWARD"), ("nat", "PREROUTING"), ("nat", "POSTROUTING")]
+    chains = [("filter", "INPUT"), ("filter", "FORWARD"), ("nat", "PREROUTING"), ("nat", "POSTROUTING")]
     for table_name, chain_name in chains:
         prune_chain(table_name, chain_name)
 
@@ -315,7 +315,7 @@ def populate_tables(protocols: list, host_ip: str, dest_ip: str, ports: list) ->
             append_filter_rule(proto, host_ip, dest_ip, port)
             append_prerouting_rule(proto, host_ip, dest_ip, port)
 
-        insert_jump_rule("nat", "POSTROUTING", dest_ip, proto)
+        insert_jump_rule("nat", "POSTROUTING", proto, dest_ip=dest_ip)
         append_postrouting_rule(proto, dest_ip)
 
 
