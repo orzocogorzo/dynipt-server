@@ -27,7 +27,7 @@ echo
 
 # Setup config
 echo "Configuring dynpt-server service"
-HOST_PUBLIC_IP=$(curl ip.yunohost.org)
+HOST_PUBLIC_IP=$(curl -q ip.yunohost.org)
 sudo -u dynipt sed -i "s/DYNIPT_HOST_IP=.*/DYNIPT_HOST_IP=$HOST_PUBLIC_IP/" $DIR/.env > /dev/null
 sudo -u dynipt sed -i "s/DYNIPT_PWD=.*/DYNIPT_PWD=$DYNIPT_PWD/" $DIR/.env > /dev/null
 sudo chmod 600 $DIR/.env > /dev/null
@@ -48,15 +48,14 @@ echo
 
 # Python requirements
 echo "Install python dependencies..."
-cd $DIR
-sudo -u dynipt python3 -m venv .venv
-sudo -u dynipt .venv/bin/python -m pip install -r requirements.txt > /dev/null
+sudo -u dynipt python3 -m venv $DIR/.venv
+sudo -u dynipt $DIR/.venv/bin/python -m pip install -r $DIR/requirements.txt > /dev/null
 echo "Python is ready"
 echo
 
 # Nginx configuration
 echo "Configuring nginx..."
-sudo cp snippets/nginx.conf /etc/nginx/conf.d/dynipt-server.conf
+sudo cp $DIR/snippets/nginx.conf /etc/nginx/conf.d/dynipt-server.conf
 sudo rm /etc/nginx/sites-enabled/default
 echo "Nginx is ready"
 echo
@@ -69,4 +68,4 @@ sudo systemctl start dynipt-server
 echo "DynIPt server is installed and running!"
 echo
 
-.venv/bin/python app.py token
+sudo -u dynipt $DIR/.venv/bin/python app.py token
