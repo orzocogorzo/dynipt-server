@@ -8,7 +8,8 @@ sudo apt install -y sudo iptables python3 python3-venv git nginx curl
 
 # User creation
 sudo useradd -M -s /usr/sbin/nologin dynipt
-read -p "Set dynipt user password: " DYNIPT_PWD
+# read -p "Set dynipt user password: " DYNIPT_PWD
+DYNIPT_PWD=$(date +%s | sha256sum | base64 | head -c 32; echo)
 echo -e "$DYNIPT_PWD\n$DYNIPT_PWD" | sudo passwd dynipt
 sudo usermod -aG sudo dynipt
 
