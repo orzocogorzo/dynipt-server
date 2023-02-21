@@ -164,8 +164,8 @@ def append_postrouting_rule(proto: str, dest_ip: str) -> str:
 def insert_jump_rule(
     table_name: str,
     chain_name: str,
-    dest_ip: str,
     proto: str,
+    dest_ip: Optional[str] = None,
     port: Optional[str] = None,
 ) -> None:
     custom_chain_name = "DYNIPT_" + chain_name
@@ -179,11 +179,21 @@ def insert_jump_rule(
         chain_name,
         "-p",
         proto,
-        "-d",
-        dest_ip,
+        # "-d",
+        # dest_ip,
         "-j",
         custom_chain_name,
     ]
+
+    if dest_ip:
+        command = (
+            command[:-2]
+            + [
+                "-d",
+                dest_ip
+            ]
+            + command[-2:]
+        )
 
     if port:
         command = (
@@ -196,7 +206,6 @@ def insert_jump_rule(
         )
 
     p = Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-
     communicate(p)
 
 
@@ -299,9 +308,9 @@ def prune_chain(table_name: str, chain_name: str) -> None:
 def populate_tables(protocols: list, host_ip: str, dest_ip: str, ports: list) -> None:
     for proto in protocols:
         for port in ports:
-            insert_jump_rule("filter", "ACCEPT", host_ip, proto, port)
-            insert_jump_rule("filter", "FORWARD", host_ip, proto, port)
-            insert_jump_rule("nat", "PREROUTING", host_ip, proto, port)
+            insert_jump_rule("filter", "INPUT", proto, port=port)
+            insert_jump_rule("filter", "FORWARD", proto, dest_ip=host_ip, port=port)
+            insert_jump_rule("nat", "PREROUTING", proto, dest_ip=host_ip, port=port)
             open_port(proto, port)
             append_filter_rule(proto, host_ip, dest_ip, port)
             append_prerouting_rule(proto, host_ip, dest_ip, port)
