@@ -26,7 +26,7 @@ every 5 minuts from some terminal in your LAN network.
 To install **DynIPt server** on your VPS run:
 
 ```bash
-curl https://raw.githubusercontent.com/orzocogorzo/dynipt-server/main/sh/install.sh > dynipt-install && bash ./dynipt-install
+curl -s https://raw.githubusercontent.com/orzocogorzo/dynipt-server/main/sh/install.sh > dynipt-install && bash ./dynipt-install
 ```
 
 Once installed, to get your authorization token, run:
