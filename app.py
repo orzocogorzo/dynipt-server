@@ -55,6 +55,29 @@ def drop_line(table_name: str, chain_name: str, lineno: str) -> None:
     communicate(p)
 
 
+def open_port(proto: str, port: str) -> str:
+    p = Popen(
+        [
+            "sudo",
+            "-S",
+            "iptables",
+            "-t",
+            "filter",
+            "-A",
+            "INPUT",
+            "-p",
+            proto,
+            "--dport",
+            port
+        ],
+        stdin=PIPE,
+        stdout=PIPE,
+        stderr=PIPE
+    )
+
+    return communicate(p)
+
+
 def append_filter_rule(proto: str, host_ip: str, dest_ip: str, port: str) -> str:
     p = Popen(
         [
@@ -254,7 +277,7 @@ def delete_chain(table_name: str, chain_name: str) -> None:
 
 
 def prune_tables() -> None:
-    chains = [("filter", "FORWARD"), ("nat", "PREROUTING"), ("nat", "POSTROUTING")]
+    chains = [("filter", "ACCEPT"), ("filter", "FORWARD"), ("nat", "PREROUTING"), ("nat", "POSTROUTING")]
     for table_name, chain_name in chains:
         prune_chain(table_name, chain_name)
 
@@ -276,8 +299,10 @@ def prune_chain(table_name: str, chain_name: str) -> None:
 def populate_tables(protocols: list, host_ip: str, dest_ip: str, ports: list) -> None:
     for proto in protocols:
         for port in ports:
+            insert_jump_rule("filter", "ACCEPT", host_ip, proto, port)
             insert_jump_rule("filter", "FORWARD", host_ip, proto, port)
             insert_jump_rule("nat", "PREROUTING", host_ip, proto, port)
+            open_port(proto, port)
             append_filter_rule(proto, host_ip, dest_ip, port)
             append_prerouting_rule(proto, host_ip, dest_ip, port)
 
