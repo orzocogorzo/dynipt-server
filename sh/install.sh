@@ -27,7 +27,7 @@ echo
 
 # Setup config
 echo "Configuring dynpt-server service"
-HOST_PUBLIC_IP=$(curl -s ip.yunohost.org)
+HOST_PUBLIC_IP=$(curl -sL ip.yunohost.org)
 sudo -u dynipt sed -i "s/DYNIPT_HOST_IP=.*/DYNIPT_HOST_IP=$HOST_PUBLIC_IP/" $DIR/.env > /dev/null
 sudo -u dynipt sed -i "s/DYNIPT_PWD=.*/DYNIPT_PWD=$DYNIPT_PWD/" $DIR/.env > /dev/null
 sudo chmod 600 $DIR/.env > /dev/null
